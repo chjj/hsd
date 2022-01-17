@@ -382,7 +382,7 @@ describe('Chain', function() {
     const block = await cpu.mineBlock();
     const tx = block.txs[0];
     const input = tx.inputs[0];
-    input.witness.set(0, Buffer.alloc(1001));
+    input.witness.set(0, Buffer.alloc(101));
     block.refresh(true);
     assert.strictEqual(await addBlock(block), 'bad-witnessroot');
   });

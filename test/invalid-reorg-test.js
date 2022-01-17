@@ -254,8 +254,14 @@ describe('Invalid Reorg', function() {
       });
 
       it('should check main chain', async () => {
-        assert(await chain.isMainChain(tip1));
-        assert(chain.tip.hash.equals(tip1.hash));
+        if (mode === 'Final') {
+          // Because we switched to tip.chainwork < instead of <=.
+          assert(await chain.isMainChain(tip2));
+          assert(chain.tip.hash.equals(tip2.hash));
+        } else {
+          assert(await chain.isMainChain(tip1));
+          assert(chain.tip.hash.equals(tip1.hash));
+        }
 
         for (const hash of valid)
           assert(!chain.invalid.has(hash));

@@ -14,8 +14,7 @@ const AirdropProof = require('../lib/primitives/airdropproof');
 const network = Network.get('regtest');
 
 const workers = new WorkerPool({
-  enabled: false,
-  size: 2
+  enabled: true
 });
 
 const AIRDROP_PROOF_FILE = resolve(__dirname, 'data', 'airdrop-proof.base64');
@@ -124,6 +123,118 @@ describe('Airdrop', function() {
       { reason: 'mandatory-script-verify-flag-failed' });
   });
 
+  it('should fail to mine airdrop proof', async () => {
+    const proof = AirdropProof.decode(rawProof);
+
+    // Flipping one bit should break everything.
+    proof.signature[Math.random() * proof.signature.length | 0] ^= 1;
+
+    const job = await cpu.createJob();
+    job.addAirdrop(proof);
+    job.refresh();
+
+    const block = await job.mineAsync();
+
+    await assert.rejects(chain.add(block),
+      { reason: 'mandatory-script-verify-flag-failed' });
+  });
+
+  it('should fail to mine airdrop proof', async () => {
+    const proof = AirdropProof.decode(rawProof);
+
+    // Flipping one bit should break everything.
+    proof.index ^= 1;
+
+    const job = await cpu.createJob();
+    job.addAirdrop(proof);
+    job.refresh();
+
+    const block = await job.mineAsync();
+
+    await assert.rejects(chain.add(block),
+      { reason: 'mandatory-script-verify-flag-failed' });
+  });
+
+  it('should fail to mine airdrop proof', async () => {
+    const proof = AirdropProof.decode(rawProof);
+
+    // Flipping one bit should break everything.
+    proof.subindex ^= 1;
+
+    const job = await cpu.createJob();
+    job.addAirdrop(proof);
+    job.refresh();
+
+    const block = await job.mineAsync();
+
+    await assert.rejects(chain.add(block),
+      { reason: 'mandatory-script-verify-flag-failed' });
+  });
+
+  it('should fail to mine airdrop proof', async () => {
+    const proof = AirdropProof.decode(rawProof);
+
+    // Flipping one bit should break everything.
+    proof.subindex ^= 1;
+
+    const job = await cpu.createJob();
+    job.addAirdrop(proof);
+    job.refresh();
+
+    const block = await job.mineAsync();
+
+    await assert.rejects(chain.add(block),
+      { reason: 'mandatory-script-verify-flag-failed' });
+  });
+
+  it('should fail to mine airdrop proof', async () => {
+    const proof = AirdropProof.decode(rawProof);
+
+    // Flipping one bit should break everything.
+    proof.proof[0][0] ^= 1;
+
+    const job = await cpu.createJob();
+    job.addAirdrop(proof);
+    job.refresh();
+
+    const block = await job.mineAsync();
+
+    await assert.rejects(chain.add(block),
+      { reason: 'mandatory-script-verify-flag-failed' });
+  });
+
+  it('should fail to mine airdrop proof', async () => {
+    const proof = AirdropProof.decode(rawProof);
+
+    // Flipping one bit should break everything.
+    proof.subproof[0][0] ^= 1;
+
+    const job = await cpu.createJob();
+    job.addAirdrop(proof);
+    job.refresh();
+
+    const block = await job.mineAsync();
+
+    await assert.rejects(chain.add(block),
+      { reason: 'mandatory-script-verify-flag-failed' });
+  });
+
+  it('should fail to mine airdrop proof', async () => {
+    const proof = AirdropProof.decode(rawProof);
+
+    // Flipping one bit should break everything.
+    proof.key[Math.random() * proof.key.length | 0] ^= 1;
+
+    const job = await cpu.createJob();
+    job.addAirdrop(proof);
+    job.refresh();
+
+    const block = await job.mineAsync();
+
+    await assert.rejects(chain.add(block),
+      { reason: 'mandatory-script-verify-flag-failed' });
+  });
+
   it('should mine airdrop proof', async () => {
     const proof = AirdropProof.decode(rawProof);
 
@@ -151,6 +262,19 @@ describe('Airdrop', function() {
                        'hs1qlpj3rwvtz83fvk6z0nm2rw57f3cwdczmc2j6a2');
 
     assert(await chain.add(block));
+  });
+
+  it('should prevent double spend with bitfield', async () => {
+    const proof = AirdropProof.decode(rawProof);
+
+    const job = await cpu.createJob();
+    job.addAirdrop(proof);
+    job.refresh();
+
+    const block = await job.mineAsync();
+
+    await assert.rejects(chain.add(block),
+      { reason: 'bad-txns-bits-missingorspent' });
   });
 
   it('should prevent double spend with bitfield', async () => {
@@ -307,6 +431,8 @@ describe('Airdrop', function() {
   it('should prevent double spend with bitfield', async () => {
     const proof = AirdropProof.decode(rawFaucetProof);
 
+    proof.index |= 1 << 12;
+
     const job = await cpu.createJob();
     job.addAirdrop(proof);
     job.refresh();
@@ -314,7 +440,7 @@ describe('Airdrop', function() {
     const block = await job.mineAsync();
 
     await assert.rejects(chain.add(block),
-      { reason: 'bad-txns-bits-missingorspent' });
+      { reason: 'bad-txns-covenants' });
   });
 
   it('should close and open', async () => {
