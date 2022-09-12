@@ -626,7 +626,7 @@ describe('Net HostList', function() {
       // depending who is connecting to us, we will choose different
       // address to advertise.
 
-      // with src it will take into account the reachability score.
+      // with dest it will take into account the reachability score.
       // See: binet.getReachability
       // TLDR:
       // UNREACHABLE = 0
@@ -639,56 +639,87 @@ describe('Net HostList', function() {
 
       const {MANUAL} = HostList.scores;
 
-      // same score (MANUAL), different reachability:
-      // remote(src) => [ local(dest)... ] - sorted by reachability scores.
-      const reachabilityMap = {
-        // unreachable => anything - will be UNREACHABLE = 0.
-        [getRandomTEREDO()]: [
-          getRandomIPv4(),   // DEFAULT = 1
-          getRandomOnion(),  // DEFAULT = 1
-          getRandomTEREDO(), // TEREDO = 2
-          getRandomIPv6()    // TEREDO = 2
+      const reachabilityVec = [
+        [
+          getRandomIPv4(),
+          [
+            getRandomIPv4(),  // IPV4 = 4
+            getRandomIPv6(),  // DEFAULT = 1
+            getRandomOnion(), // DEFAULT = 1
+            getRandomTEREDO() // DEFAULT = 1
+          ]
         ],
-        [getRandomIPv4()]: [
-          getRandomIPv4(),   // IPV4 = 4
-          getRandomOnion(),  // IPV4 = 4
-          getRandomTEREDO(), // IPV4 = 4
-          getRandomIPv6()    // IPV4 = 4
+        [
+          getRandomIPv6(),
+          [
+            getRandomIPv6(),   // IPV6_{WEAK,STRONG} = {3,5}
+            getRandomIPv4(),   // IPV4 = 4
+            getRandomTEREDO(), // TEREDO = 2
+            getRandomOnion()   // DEFAULT = 1
+          ]
         ],
-        [getRandomIPv6()]: [
-          getRandomOnion(),  // DEFAULT = 1
-          getRandomIPv4(),   // DEFAULT = 1
-          getRandomTEREDO(), // IPV6_WEAK = 3
-          getRandomIPv6()    // IPV6_STRONG = 5
+        [
+          getRandomIPv6(),
+          [
+            getRandomIPv4(),   // IPV4 = 4
+            getRandomTEREDO(), // TEREDO = 2
+            getRandomOnion()   // DEFAULT = 1
+          ]
         ],
-        [getRandomOnion()]: [
-          getRandomIPv4(),   // DEFAULT = 1
-          getRandomTEREDO(), // DEFAULT = 1
-          getRandomIPv6(),   // DEFAULT = 1
-          getRandomOnion()   // PRIVATE = 6
+        [
+          getRandomTEREDO(),
+          [
+            getRandomIPv4(),   // IPV4 = 4
+            getRandomIPv6(),   // IPV6_WEAK = 3
+            getRandomTEREDO(), // TEREDO = 2
+            getRandomOnion()   // DEFAULT = 1
+          ]
+        ],
+        [
+          getRandomTEREDO(),
+          [
+            getRandomIPv6(),   // IPV6_WEAK = 3
+            getRandomTEREDO(), // TEREDO = 2
+            getRandomOnion()   // DEFAULT = 1
+          ]
+        ],
+        [
+          getRandomTEREDO(),
+          [
+            getRandomTEREDO(), // TEREDO = 2
+            getRandomOnion()   // DEFAULT = 1
+          ]
+        ],
+        [
+          getRandomOnion(),
+          [
+            getRandomOnion(), // PRIVATE = 6
+            getRandomIPv4(),  // IPV4 = 4
+            getRandomIPv6(),  // DEFAULT = 1
+            getRandomTEREDO() // DEFAULT = 1
+          ]
+        ],
+        [
+          getRandomOnion(),
+          [
+            getRandomIPv4(),  // IPV4 = 4
+            getRandomIPv6(),  // DEFAULT = 1
+            getRandomTEREDO() // DEFAULT = 1
+          ]
         ]
-      };
+      ];
 
-      for (const [rawSrc, rawDests] of Object.entries(reachabilityMap)) {
-        const dests = rawDests.map((dest) => {
-          return [NetAddress.fromHostname(dest, mainnet), MANUAL];
+      for (const [rawDest, rawSrcs] of reachabilityVec) {
+        const dest = NetAddress.fromHostname(rawDest, mainnet);
+        const srcs = rawSrcs.map((src) => {
+          return [NetAddress.fromHostname(src, mainnet), MANUAL];
         });
 
-        for (let i = 0; i < dests.length; i++) {
-          const addrs = dests.slice(0, i + 1);
-          const expected = addrs[addrs.length - 1];
+        const s = () => Math.random() > 0.5 ? 1 : -1;
+        const hosts = getHostsFromLocals(srcs.slice().sort(s));
+        const best = hosts.getLocal(dest);
 
-          // Because getLocal will choose first with the same score,
-          // we make the "best" choice (because of the sorting) at first.
-          addrs[addrs.length - 1] = addrs[0];
-          addrs[0] = expected;
-
-          const hosts = getHostsFromLocals(addrs);
-          const src = NetAddress.fromHostname(rawSrc, mainnet);
-          const best = hosts.getLocal(src);
-
-          assert.strictEqual(best, expected[0]);
-        }
+        assert.strictEqual(best, srcs[0][0]);
       }
     });
 
